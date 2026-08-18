@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri SK Caterers – Invoice Maker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #f0ece4;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  h1.app-title {
+    text-align: center;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: #7a4a1e;
+    margin-bottom: 16px;
+    font-family: Arial, sans-serif;
+    text-transform: uppercase;
+  }
+
+  /* ── EDITOR PANEL ── */
+  .editor {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.10);
+    margin-bottom: 20px;
+  }
+
+  .editor h2 {
+    font-size: .85rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #a0622a;
+    margin-bottom: 12px;
+    font-family: Arial, sans-serif;
+    border-bottom: 1px solid #e8ddd0;
+    padding-bottom: 6px;
+  }
+
+  label {
+    display: block;
+    font-size: .75rem;
+    color: #888;
+    margin-bottom: 3px;
+    font-family: Arial, sans-serif;
+  }
+
+  input[type="text"], input[type="date"], input[type="number"], textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    font-size: .92rem;
+    font-family: Georgia, serif;
+    color: #333;
+    background: #fdfaf6;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border .2s;
+  }
+  input:focus, textarea:focus { border-color: #c47d35; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── ITEMS TABLE EDITOR ── */
+  .item-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 28px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .item-row input { margin-bottom: 0; font-size: .82rem; padding: 7px 8px; }
+  .item-row .del-btn {
+    background: #fde8e8;
+    border: none;
+    border-radius: 6px;
+    color: #c0392b;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+  }
+
+  .col-heads {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 28px;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .col-heads span {
+    font-size: .68rem;
+    color: #aaa;
+    font-family: Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 8px;
+  }
+
+  .add-btn {
+    background: #7a4a1e;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: .85rem;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    margin-top: 4px;
+    letter-spacing: .5px;
+  }
+  .add-btn:active { opacity: .8; }
+
+  /* ── SIGN UPLOAD ── */
+  .sign-area {
+    border: 2px dashed #d4b896;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    background: #fdf8f3;
+    cursor: pointer;
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .sign-area p { font-size: .8rem; color: #b08060; font-family: Arial, sans-serif; }
+  .sign-area img { max-height: 70px; max-width: 100%; margin-top: 6px; }
+  #signInput { display: none; }
+
+  /* ── EXPORT BTN ── */
+  .export-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #c47d35, #7a4a1e);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    font-family: Arial, sans-serif;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(122,74,30,.28);
+    margin-top: 6px;
+  }
+  .export-btn:active { opacity: .85; }
+
+  /* ══════════════════════════════
+     INVOICE PREVIEW (print target)
+  ══════════════════════════════ */
+  #invoicePreview {
+    display: none; /* hidden until PDF export */
+    font-family: Georgia, serif;
+    background: #fff;
+    width: 100%;
+    padding: 28px 24px 20px;
+    color: #222;
+  }
+
+  /* letterhead */
+  .lh-top {
+    text-align: center;
+    border-bottom: 3px double #c47d35;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .lh-top .company {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #7a4a1e;
+    letter-spacing: 1px;
+  }
+  .lh-top .tagline {
+    font-size: .78rem;
+    color: #a07040;
+    letter-spacing: 2px;
+    font-family: Arial, sans-serif;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .lh-top .contact {
+    font-size: .75rem;
+    color: #888;
+    margin-top: 4px;
+    font-family: Arial, sans-serif;
+  }
+
+  /* meta row */
+  .inv-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: .78rem;
+    font-family: Arial, sans-serif;
+    color: #555;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .inv-meta strong { color: #333; }
+
+  /* items table */
+  .inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+    margin-bottom: 16px;
+  }
+  .inv-table thead tr {
+    background: #7a4a1e;
+    color: #fff;
+  }
+  .inv-table th {
+    padding: 7px 10px;
+    text-align: left;
+    font-family: Arial, sans-serif;
+    font-size: .75rem;
+    letter-spacing: .5px;
+    font-weight: normal;
+  }
+  .inv-table th:last-child,
+  .inv-table td:last-child { text-align: right; }
+  .inv-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #ede6db;
+    font-family: Arial, sans-serif;
+  }
+  .inv-table tr:nth-child(even) td { background: #fdf8f3; }
+
+  /* footer sign */
+  .inv-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    margin-top: 24px;
+    border-top: 1px solid #ddd;
+    padding-top: 14px;
+  }
+  .sign-block { text-align: center; }
+  .sign-block img { max-height: 60px; margin-bottom: 4px; display: block; margin-left: auto; margin-right: auto; }
+  .sign-block .sign-label {
+    font-size: .7rem;
+    color: #999;
+    font-family: Arial, sans-serif;
+    border-top: 1px solid #ccc;
+    padding-top: 4px;
+    min-width: 120px;
+  }
+
+  .inv-note {
+    font-size: .7rem;
+    color: #aaa;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 16px;
+    letter-spacing: .5px;
+  }
+
+  /* ── Print styles ── */
+  @media print {
+    body > *:not(#invoicePreview) { display: none !important; }
+    #invoicePreview { display: block !important; }
+    @page { margin: 14mm; }
+  }
+</style>
+</head>
+<body>
+
+<h1 class="app-title">📋 Invoice Maker</h1>
+
+<!-- ══ EDITOR ══ -->
+<div class="editor">
+  <h2>🏢 Company Info</h2>
+  <label>Company Name</label>
+  <input type="text" id="companyName" value="Sri SK Caterers">
+  <label>Tagline / Service</label>
+  <input type="text" id="tagline" value="Pure Veg Catering & Event Services">
+  <label>Phone / Address</label>
+  <input type="text" id="contact" value="+91 98765 43210 | Chennai, Tamil Nadu">
+</div>
+
+<div class="editor">
+  <h2>🧾 Invoice Details</h2>
+  <div class="row2">
+    <div>
+      <label>Invoice No</label>
+      <input type="text" id="invNo" value="001">
+    </div>
+    <div>
+      <label>Date</label>
+      <input type="date" id="invDate">
+    </div>
+  </div>
+  <label>Bill To (Customer Name)</label>
+  <input type="text" id="billTo" placeholder="Customer name / occasion">
+  <label>Notes (optional)</label>
+  <textarea id="notes" rows="2" placeholder="Payment terms, thank you note…"></textarea>
+</div>
+
+<div class="editor">
+  <h2>🍽️ Items</h2>
+  <div class="col-heads">
+    <span>Item / Description</span>
+    <span>Qty</span>
+    <span>Rate (₹)</span>
+    <span></span>
+  </div>
+  <div id="itemsContainer"></div>
+  <button class="add-btn" onclick="addItem()">+ Add Item</button>
+</div>
+
+<div class="editor">
+  <h2>✍️ E-Signature</h2>
+  <div class="sign-area" onclick="document.getElementById('signInput').click()">
+    <p>Tap to upload your signature image</p>
+    <img id="signPreview" src="" alt="" style="display:none">
+  </div>
+  <input type="file" id="signInput" accept="image/*" onchange="loadSign(event)">
+</div>
+
+<button class="export-btn" onclick="exportPDF()">⬇ Export as PDF</button>
+
+<!-- ══ INVISIBLE INVOICE PRINT TEMPLATE ══ -->
+<div id="invoicePreview">
+  <div class="lh-top">
+    <div class="company" id="p_company"></div>
+    <div class="tagline" id="p_tagline"></div>
+    <div class="contact" id="p_contact"></div>
+  </div>
+
+  <div class="inv-meta">
+    <div><strong>Bill To:</strong> <span id="p_billTo"></span></div>
+    <div><strong>Invoice #:</strong> <span id="p_invNo"></span> &nbsp;|&nbsp; <strong>Date:</strong> <span id="p_date"></span></div>
+  </div>
+
+  <table class="inv-table">
+    <thead>
+      <tr>
+        <th style="width:36px">#</th>
+        <th>Item / Description</th>
+        <th style="width:54px;text-align:right">Qty</th>
+        <th style="width:80px;text-align:right">Rate (₹)</th>
+        <th style="width:90px;text-align:right">Amount (₹)</th>
+      </tr>
+    </thead>
+    <tbody id="p_tableBody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="4" style="text-align:right;font-weight:bold;padding:9px 10px;font-family:Arial,sans-serif;font-size:.8rem;">TOTAL</td>
+        <td style="text-align:right;font-weight:bold;padding:9px 10px;font-family:Arial,sans-serif;font-size:.88rem;color:#7a4a1e" id="p_total"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div id="p_noteWrap" style="font-size:.75rem;color:#666;font-family:Arial,sans-serif;margin-bottom:10px;display:none">
+    <strong>Note:</strong> <span id="p_note"></span>
+  </div>
+
+  <div class="inv-footer">
+    <div class="sign-block">
+      <img id="p_sign" src="" alt="" style="display:none">
+      <div class="sign-label">Authorised Signatory</div>
+    </div>
+  </div>
+
+  <div class="inv-note">Thank you for your trust in Sri SK Caterers 🙏</div>
+</div>
+
+<script>
+  // ── Set today's date ──
+  document.getElementById('invDate').valueAsDate = new Date();
+
+  // ── Items management ──
+  let itemCount = 0;
+  function addItem() {
+    itemCount++;
+    const c = document.getElementById('itemsContainer');
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.id = 'item_' + itemCount;
+    row.innerHTML = `
+      <input type="text" placeholder="e.g. Biriyani" class="iname">
+      <input type="number" placeholder="50" min="0" class="iqty">
+      <input type="number" placeholder="120" min="0" class="irate">
+      <button class="del-btn" onclick="removeItem('item_${itemCount}')">✕</button>
+    `;
+    c.appendChild(row);
+  }
+  function removeItem(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+  addItem(); // start with one row
+
+  // ── Signature ──
+  let signDataURL = '';
+  function loadSign(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      signDataURL = ev.target.result;
+      const prev = document.getElementById('signPreview');
+      prev.src = signDataURL;
+      prev.style.display = 'block';
+      document.querySelector('.sign-area p').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── Populate print template ──
+  function buildPreview() {
+    document.getElementById('p_company').textContent  = document.getElementById('companyName').value || 'Sri SK Caterers';
+    document.getElementById('p_tagline').textContent  = document.getElementById('tagline').value;
+    document.getElementById('p_contact').textContent  = document.getElementById('contact').value;
+    document.getElementById('p_billTo').textContent   = document.getElementById('billTo').value || '—';
+    document.getElementById('p_invNo').textContent    = document.getElementById('invNo').value;
+
+    const d = new Date(document.getElementById('invDate').value);
+    document.getElementById('p_date').textContent = isNaN(d) ? '' : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'});
+
+    // items
+    const rows = document.querySelectorAll('#itemsContainer .item-row');
+    let html = '', total = 0, idx = 1;
+    rows.forEach(r => {
+      const name = r.querySelector('.iname').value.trim();
+      const qty  = parseFloat(r.querySelector('.iqty').value) || 0;
+      const rate = parseFloat(r.querySelector('.irate').value) || 0;
+      if (!name) return;
+      const amt = qty * rate;
+      total += amt;
+      html += `<tr>
+        <td style="font-family:Arial,sans-serif">${idx++}</td>
+        <td>${name}</td>
+        <td style="text-align:right;font-family:Arial,sans-serif">${qty}</td>
+        <td style="text-align:right;font-family:Arial,sans-serif">${fmt(rate)}</td>
+        <td style="text-align:right;font-family:Arial,sans-serif">${fmt(amt)}</td>
+      </tr>`;
+    });
+    document.getElementById('p_tableBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#aaa;font-family:Arial,sans-serif">No items</td></tr>';
+    document.getElementById('p_total').textContent = '₹ ' + fmt(total);
+
+    // note
+    const note = document.getElementById('notes').value.trim();
+    document.getElementById('p_note').textContent = note;
+    document.getElementById('p_noteWrap').style.display = note ? '' : 'none';
+
+    // sign
+    const pSign = document.getElementById('p_sign');
+    if (signDataURL) { pSign.src = signDataURL; pSign.style.display = 'block'; }
+    else              { pSign.style.display = 'none'; }
+  }
+
+  function fmt(n) {
+    return Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  // ── Export PDF via print ──
+  function exportPDF() {
+    buildPreview();
+    document.getElementById('invoicePreview').style.display = 'block';
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.getElementById('invoicePreview').style.display = 'none';
+      }, 1000);
+    }, 200);
+  }
+</script>
+</body>
+</html>
